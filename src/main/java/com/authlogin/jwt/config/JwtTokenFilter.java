@@ -1,63 +1,45 @@
 package com.authlogin.jwt.config;
 
-import java.io.IOException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.json.JSONObject;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import com.authlogin.jwt.service.JwtUserDetailsService;
-
-import io.jsonwebtoken.ExpiredJwtException;
+import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
-public class JwtTokenFilter extends OncePerRequestFilter {
-	@Autowired
-	private JwtUserDetailsService jwtUserDetailsService;
-
-	@Autowired
-	private JwtTokenUtil jwtTokenUtil;
-
+public class JwtTokenFilter implements HandlerInterceptor {
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-		final String requestTokenHeader = request.getHeader("authorization");
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response,Object handler)throws Exception{
+        if(request.getMethod().equals("OPTIONS")){
+            response.setStatus(HttpServletResponse.SC_OK);
+            return true;
+        }
 
-		String username = null;
-		String jwtToken = null;
-		
-           //Frontend form need begin with Bearer String
-		if (requestTokenHeader != null ||  requestTokenHeader.startsWith("Bearer")) {
-			jwtToken = requestTokenHeader.substring(7);
-			try {
-				username = jwtTokenUtil.getUsernameFromToken(jwtToken);
-			} catch (IllegalArgumentException e) {
-				System.out.println("Unable to get JWT Token");
-			} catch (ExpiredJwtException e) {
-				System.out.println("JWT Token has expired");
-			}
-		} else {
-			logger.warn("JWT Token does not begin with Bearer String");
-		}
-		
-		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-			UserDetails userDetails = this.jwtUserDetailsService.loadUserByUsername(username);
-			if (jwtTokenUtil.validateToken(jwtToken, userDetails)) {
-				UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-				usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				
-				// Spring Security Configurations successfully.
-				SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
-			}
-		}
-		chain.doFilter(request, response);
-	}
+        response.setCharacterEncoding("utf-8");
+
+        String token = request.getHeader("authorization");
+        if(token != null){
+            boolean result = JwtTokenUtil.verify(token);
+            if(result){
+                System.out.println("Pass Interceptor");
+                return true;
+            }
+        }
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json; charset=utf-8");
+        try{
+            JSONObject json = new JSONObject();
+            json.put("success","false");
+            json.put("msg","Unautorized，Interceptor Failed");
+            json.put("code","401");
+            response.getWriter().append(json.toString());
+            System.out.println("Unautorized，Interceptor Failed");
+        }catch (Exception e){
+            e.printStackTrace();
+            response.sendError(401);
+            return false;
+        }
+        return false;
+    }
 }

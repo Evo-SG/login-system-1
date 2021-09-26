@@ -1,36 +1,40 @@
 package com.authlogin.jwt.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.authlogin.jwt.config.JwtTokenUtil;
-import com.authlogin.jwt.model.JwtRequest;
-import com.authlogin.jwt.model.JwtResponse;
-import com.authlogin.jwt.service.JwtUserDetailsService;
+import com.authlogin.jwt.model.JwtUserDetails;
+import com.authlogin.jwt.service.JwtUserSevice;
 
 @RestController
-@CrossOrigin
 public class JwtAuthController {	
 	@Autowired
-	private JwtTokenUtil jwtTokenUtil;
-	
-	@Autowired
-	private JwtUserDetailsService userDetailsService;
-	
-	@RequestMapping(value = "/authenticate", method = RequestMethod.POST)
-	public ResponseEntity<?> createAuthenticationToken(@RequestBody JwtRequest authRequest) throws Exception {
-		final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getUsername());
-		final String token = jwtTokenUtil.generateToken(userDetails);
-		return ResponseEntity.ok(new JwtResponse(token, userDetails.getUsername()));
-	}	
+    private JwtUserSevice userService;
+
+    @PostMapping(value="/authenticate")
+    @ResponseBody
+    public Map<String,Object> authLogin(String username,String password){
+        Map<String,Object> map = new HashMap<>();
+        JwtUserDetails user = new JwtUserDetails(username,password);
+
+        if(userService.login(user)){
+            String token = JwtTokenUtil.sign(user);
+            if(token != null){
+                map.put("code", "200");
+                map.put("message", "Authorized");
+                map.put("token", token);
+                return map;
+            }
+        }
+        map.put("code", "401");
+        map.put("message", "Unauthorized");
+        return map;
+
+    }
 }

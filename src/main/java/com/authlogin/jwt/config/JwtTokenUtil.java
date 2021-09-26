@@ -1,72 +1,41 @@
 package com.authlogin.jwt.config;
 
-import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.authlogin.jwt.model.JwtUserDetails;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
-@SuppressWarnings("serial")
-@Component
-public class JwtTokenUtil implements Serializable {
+public class JwtTokenUtil {
 	
-	public static final long JWT_TOKEN_VALIDITY = 1000 * 3600;
-	
-	@Value("${app.jwtSecret}")
-	private String secret;
+	private static final long EXPIRE_TIME= 15*60*1000; //Token expired in 15 min
+    private static final String TOKEN_SECRET="token123";
 
-	// retrieve username from jwt token
-	public String getUsernameFromToken(String token) {
-		return getClaimFromToken(token, Claims::getSubject);
-	}
+    public static String sign(JwtUserDetails user){
+        String token = null;
+        try {
+            Date expiresAt = new Date(System.currentTimeMillis() + EXPIRE_TIME);
+            token = JWT.create().withIssuer("auth0").withClaim("username", user.getUsername()).withExpiresAt(expiresAt).sign(Algorithm.HMAC256(TOKEN_SECRET));
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return token;
+    }
 
-	// retrieve expiration date from jwt token
-	public Date getExpirationDateFromToken(String token) {
-		return getClaimFromToken(token, Claims::getExpiration);
-	}
-
-	public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-		final Claims claims = getAllClaimsFromToken(token);
-		return claimsResolver.apply(claims);
-	}
-
-	//Use secret key to receive infomation
-	private Claims getAllClaimsFromToken(String token) {
-		return Jwts.parser().setSigningKey(secret)
-		.parseClaimsJws(token).getBody();
-	}
-
-	// check token expired
-	private Boolean isTokenExpired(String token) {
-		final Date expiration = getExpirationDateFromToken(token);
-		return expiration.before(new Date());
-	}
-
-	// generate token for user
-	public String generateToken(UserDetails userDetails) {
-		Map<String, Object> claims = new HashMap<>();
-		String username = userDetails.getUsername();
-		return doGenerateToken(claims, username);
-	}
-
-	private String doGenerateToken(Map<String, Object> claims, String subject) {
-		return Jwts.builder().setClaims(claims).setSubject(subject)
-			.setIssuedAt(new Date(System.currentTimeMillis()))
-			.setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY))
-			.signWith(SignatureAlgorithm.HS512, secret).compact();
-	}
-
-	// validate token
-	public Boolean validateToken(String token, UserDetails userDetails) {
-		final String username = getUsernameFromToken(token);
-		return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-	}
+    public static boolean verify (String token){
+        try {
+            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(TOKEN_SECRET)).withIssuer("auth0").build();
+            DecodedJWT jwt = verifier.verify(token);
+            System.out.println("Successful");
+            System.out.println("issuer: " + jwt.getIssuer());
+            System.out.println("username: " + jwt.getClaim("username").asString());
+            System.out.println("Token expired in：      " + jwt.getExpiresAt());
+            return true;
+        } catch (Exception e) {
+        	e.printStackTrace();
+        	return false;
+        }
+    }
 }
