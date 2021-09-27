@@ -1,0 +1,4 @@
+.DS_Store
+.bash
+node_modules/
+build/
