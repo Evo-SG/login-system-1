@@ -5,7 +5,6 @@ const App = () => {
         username: '',
         password: ''
     })
-    const [token, changeToken] = React.useState({})
     const change = (e) => {
         e.preventDefault();
         var name = e.target.name,
@@ -19,28 +18,31 @@ const App = () => {
     const submit = (e) => {
         e.preventDefault();
         var Formdata = new FormData();
-        Formdata.append("username", "admin");
-        Formdata.append("password", "admin");
+        Formdata.append("username", person.username);
+        Formdata.append("password", person.password);
         var req = new XMLHttpRequest();
         req.onreadystatechange = function () {
-            if (this.readyState === 4) changeToken(JSON.parse(this.response))
+            if (this.readyState === 4) {
+                var json = JSON.parse(this.response)
+                login(json)
+            }
         }
         req.open("POST", "http://localhost:8080/authenticate", true);
         req.send(Formdata);
         setPerson({ username: '', password: '' })
     }
-    const click = () => {
-        alert(token.token ?? "Login first...")
-    }
-    const login = () => {
-        var msg = token.token ?? "dont have token";
-        if (msg === "dont have token") return alert("login fail");
+    const login = (json) => {
         var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-            if (this.readyState === 4) alert(this.responseText)
+        xhttp.onreadystatechange = function () {
+            var code = Number(json.code)
+            if (this.readyState === 4 && code >= 200 && code < 300) {
+                document.write(this.responseText)
+            } else if (this.readyState === 4) {
+                document.write("Error")
+            }
         }
         xhttp.open("GET", "http://localhost:8080/admin", true);
-        xhttp.setRequestHeader("Authorization", token.token);
+        xhttp.setRequestHeader("Authorization", json.token);
         xhttp.send();
     }
 
@@ -63,14 +65,6 @@ const App = () => {
                     type="submit"
                     placeholder="Submit" />
             </form>
-            <button
-                type="button"
-                onClick={click}
-            >GET TOKEN</button>
-            <button
-                type="button"
-                onClick={login}
-            >LOGIN</button>
         </>
     )
 }
