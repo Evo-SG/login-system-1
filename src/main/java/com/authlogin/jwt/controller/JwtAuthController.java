@@ -4,10 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.authlogin.jwt.config.JwtTokenUtil;
 import com.authlogin.jwt.model.JwtUserDetails;
@@ -20,8 +17,9 @@ public class JwtAuthController {
 
     @CrossOrigin("*")
     @PostMapping(value="/authenticate")
-    @ResponseBody
-    public Map<String,Object> authLogin(String username,String password){
+    public Map<String,Object> authLogin(@RequestBody JwtUserDetails jwtUserDetails){
+        String username = jwtUserDetails.getUsername();
+        String password = jwtUserDetails.getPassword();
         Map<String,Object> map = new HashMap<>();
         JwtUserDetails user = new JwtUserDetails(username,password);
 
