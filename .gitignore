@@ -29,6 +29,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### npm pkg ###
+**/node_modules
+**/build
+
 ### VS Code ###
 .vscode/
 .DS_Store
