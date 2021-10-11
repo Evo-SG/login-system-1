@@ -10,12 +10,12 @@ import com.authlogin.jwt.config.JwtTokenUtil;
 import com.authlogin.jwt.model.JwtUserDetails;
 import com.authlogin.jwt.service.JwtUserSevice;
 
+@CrossOrigin("*")
 @RestController
 public class JwtAuthController {	
 	@Autowired
     private JwtUserSevice userService;
 
-    @CrossOrigin("*")
     @PostMapping(value="/authenticate")
     public Map<String,Object> authLogin(@RequestBody JwtUserDetails jwtUserDetails){
         String username = jwtUserDetails.getUsername();
@@ -35,6 +35,5 @@ public class JwtAuthController {
         map.put("code", "401");
         map.put("message", "Unauthorized");
         return map;
-
     }
 }
